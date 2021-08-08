@@ -591,7 +591,9 @@ module PodBuilder
         if matches&.size == 4 && !stripped_line.start_with?("#")
           path = matches[2]
 
-          file_exists = File.exist?(File.expand_path(path))
+          file_basename = File.basename(path, ".*")
+          file_dirname = File.dirname(File.expand_path(path))
+          file_exists = !Dir.glob("#{file_dirname}/#{file_basename}.*").empty?
 
           is_absolute = ["~", "/"].include?(path[0])
           if is_absolute || !file_exists
