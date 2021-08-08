@@ -682,6 +682,26 @@ module PodBuilder
       return lines.join
     end
 
+    def self.prepare_for_expo_unimodules(podfile_content)
+      lines = []
+      podfile_content.each_line do |line|
+        if line.include?("use_unimodules!")
+          matches = line.match(/(\s*)/)
+          unless matches&.size == 2
+            return podfile_content
+          end
+    
+          indentation = matches[1]
+          lines.push("#{indentation}use_unimodules!({ modules_paths: ['../../node_modules']}) # pb added\n")
+          lines.push("#{indentation}# #{line.strip} # pb removed\n")
+        else
+          lines.push(line)
+        end
+      end
+
+      return lines.join
+    end
+
     def self.prepare_for_react_native(podfile_content)
       original_podfile_content = podfile_content.dup
 
@@ -692,6 +712,11 @@ module PodBuilder
       end
       podfile_content = content
       content = prepare_for_react_native_native_modules_file(podfile_content)
+      if content == podfile_content
+        return original_podfile_content
+      end
+      podfile_content = content
+      content = prepare_for_expo_unimodules(podfile_content)
       if content == podfile_content
         return original_podfile_content
       end
