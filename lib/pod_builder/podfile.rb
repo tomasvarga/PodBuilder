@@ -613,7 +613,7 @@ module PodBuilder
 
     def self.prepare_for_react_native_write_pb_configuration(podfile_content)
       base = File.expand_path(File.join(PodBuilder::project_path, ".."))
-      bin_js = Dir.glob("#{base}/node_modules/@react-native-community/cli/build/bin.js")
+      bin_js = Dir.glob("#{base}/node_modules/.bin/react-native")
 
       raise "\n\nReact native cli bin_js not found! Did you run yarn install?\n".red unless bin_js.count == 1
       bin_js = bin_js.first
