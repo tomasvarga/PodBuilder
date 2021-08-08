@@ -120,9 +120,11 @@ module PodBuilder
       end
 
       def self.update_react_native_podspecs
+        base = File.expand_path(File.join(PodBuilder::project_path, ".."))
+        
         # React-Core.podspec
         file = "React-Core.podspec"
-        paths = Dir.glob("#{PodBuilder::git_rootpath}/node_modules/**/#{file}")
+        paths = Dir.glob("#{base}/node_modules/**/#{file}")
         raise "\n\nUnexpected number of #{file} found\n".red if paths.count != 1
 
         content = File.read(paths[0])
@@ -134,7 +136,7 @@ module PodBuilder
 
         # React-CoreModules.podspec
         file = "React-CoreModules.podspec"
-        paths = Dir.glob("#{PodBuilder::git_rootpath}/node_modules/**/#{file}")
+        paths = Dir.glob("#{base}/node_modules/**/#{file}")
         raise "\n\nUnexpected number of #{file} found\n".red if paths.count != 1
 
         content = File.read(paths[0])
