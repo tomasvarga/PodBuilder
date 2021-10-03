@@ -642,43 +642,61 @@ module PodBuilder
       return "rn_config = JSON.load(File.read(\"rn_config.json\")) # pb added\n\n" + podfile_content
     end
 
-    def self.prepare_for_react_native_rn_pods_file(podfile_content)
+    def prepare_for_react_native_rn_pods_file(podfile_content)
       lines = []
+      temp_rn_lines = []
       podfile_content.each_line do |line|
-        if line.include?("use_react_native!")
+        if (line =~ /use_react_native!/) .. (line =~ /\)/)
           matches = line.match(/(\s*)/)
-          unless matches&.size == 2
-            return podfile_content
-          end
-    
           indentation = matches[1]
-          lines.push("#{indentation}use_react_native!(:path => rn_config[\"reactNativePath\"]) # pb added\n")
-          lines.push("#{indentation}# #{line.strip} # pb removed\n")
+          #One-line support (backwards compatibility with RN <64)
+          if line.include?("use_react_native!(:path => ")
+            lines.push("#{indentation} #{line.strip.sub! "config","rn_config"} # pb added\n")
+            lines.push("#{indentation}##{line.strip} # pb removed\n")
+          # Multiple-line support
+          elsif line.include?(":path => config")
+            lines.push(line.sub! "config","rn_config")
+          elsif line.include?(")")
+            lines.push(") # pb added\n")
+            lines.push(temp_rn_lines)
+            lines.push("# pb removed")
+          else 
+            lines.push(line)
+          end
+          temp_rn_lines.push("##{indentation} #{line.strip} \n")
         else
           lines.push(line)
         end
       end
-
       return lines.join
     end
 
     def self.prepare_for_react_native_native_modules_file(podfile_content)
       lines = []
+      temp_rn_lines = []
       podfile_content.each_line do |line|
-        if line.include?("use_native_modules!")
+        if (line =~ /use_react_native!/) .. (line =~ /\)/)
           matches = line.match(/(\s*)/)
-          unless matches&.size == 2
-            return podfile_content
-          end
-    
           indentation = matches[1]
-          lines.push("#{indentation}use_native_modules!(rn_config) # pb added\n")
-          lines.push("#{indentation}# #{line.strip} # pb removed\n")
+          #One-line support (backwards compatibility with RN <64)
+          if line.include?("use_react_native!(:path => ")
+            lines.push("#{indentation} #{line.strip.sub! "config","rn_config"} # pb added\n")
+            lines.push("#{indentation}##{line.strip} # pb removed\n")
+          # Multi-line support
+          elsif line.include?(":path => config")
+            lines.push(line.sub! "config","rn_config")
+          elsif line.include?(")")
+            lines.push(") # pb added\n")
+            lines.push(temp_rn_lines)
+            lines.push("# pb removed")
+          else 
+            lines.push(line)
+          end
+          temp_rn_lines.push("##{indentation} #{line.strip} \n")
         else
           lines.push(line)
         end
       end
-
       return lines.join
     end
 
