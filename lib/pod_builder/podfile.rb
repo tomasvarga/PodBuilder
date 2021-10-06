@@ -642,7 +642,7 @@ module PodBuilder
       return "rn_config = JSON.load(File.read(\"rn_config.json\")) # pb added\n\n" + podfile_content
     end
 
-    def prepare_for_react_native_rn_pods_file(podfile_content)
+    def self.prepare_for_react_native_rn_pods_file(podfile_content)
       lines = []
       temp_rn_lines = []
       podfile_content.each_line do |line|
