@@ -289,7 +289,7 @@ Pod::HooksManager.register('podbuilder-rome', :post_install) do |installer_conte
   # ..."Time.h:52:17: error: typedef redefinition with different types"
   # We need to make one crude patch to RCT-Folly - set `__IPHONE_10_0` to our iOS target + 1
   # https://github.com/facebook/flipper/issues/834
-  `sed -i -e  $'s/__IPHONE_10_0/__IPHONE_12_0/' /tmp/pod_builder/RCT-Folly/folly/portability/Time.h` 
+  `sed -i -e  $'s/__IPHONE_10_0/__IPHONE_12_0/' /tmp/pod_builder/Pods/RCT-Folly/folly/portability/Time.h` 
 
   enable_dsym = user_options.fetch('dsym', true)
   configuration = user_options.fetch('configuration', 'Debug')
