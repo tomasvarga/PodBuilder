@@ -591,7 +591,9 @@ module PodBuilder
         if matches&.size == 4 && !stripped_line.start_with?("#")
           path = matches[2]
 
-          file_exists = File.exist?(File.expand_path(path))
+          file_basename = File.basename(path, ".*")
+          file_dirname = File.dirname(File.expand_path(path))
+          file_exists = !Dir.glob("#{file_dirname}/#{file_basename}.*").empty?
 
           is_absolute = ["~", "/"].include?(path[0])
           if is_absolute || !file_exists
@@ -613,7 +615,7 @@ module PodBuilder
 
     def self.prepare_for_react_native_write_pb_configuration(podfile_content)
       base = File.expand_path(File.join(PodBuilder::project_path, ".."))
-      bin_js = Dir.glob("#{base}/node_modules/@react-native-community/cli/build/bin.js")
+      bin_js = Dir.glob("#{base}/node_modules/.bin/react-native")
 
       raise "\n\nReact native cli bin_js not found! Did you run yarn install?\n".red unless bin_js.count == 1
       bin_js = bin_js.first
@@ -642,21 +644,30 @@ module PodBuilder
 
     def self.prepare_for_react_native_rn_pods_file(podfile_content)
       lines = []
+      temp_rn_lines = []
       podfile_content.each_line do |line|
-        if line.include?("use_react_native!")
+        if (line =~ /use_react_native!/) .. (line =~ /\)/)
           matches = line.match(/(\s*)/)
-          unless matches&.size == 2
-            return podfile_content
-          end
-    
           indentation = matches[1]
-          lines.push("#{indentation}use_react_native!(:path => rn_config[\"reactNativePath\"]) # pb added\n")
-          lines.push("#{indentation}# #{line.strip} # pb removed\n")
+          #One-line support (backwards compatibility with RN <64)
+          if line.include?("use_react_native!(:path => ")
+            lines.push("#{indentation} #{line.strip.sub! "config","rn_config"} # pb added\n")
+            lines.push("#{indentation}##{line.strip} # pb removed\n")
+          # Multiple-line support
+          elsif line.include?(":path => config")
+            lines.push(line.sub! "config","rn_config")
+          elsif line.include?(")")
+            lines.push(") # pb added\n")
+            lines.push(temp_rn_lines)
+            lines.push("# pb removed")
+          else 
+            lines.push(line)
+          end
+          temp_rn_lines.push("##{indentation} #{line.strip} \n")
         else
           lines.push(line)
         end
       end
-
       return lines.join
     end
 
@@ -668,9 +679,28 @@ module PodBuilder
           unless matches&.size == 2
             return podfile_content
           end
-    
+
           indentation = matches[1]
           lines.push("#{indentation}use_native_modules!(rn_config) # pb added\n")
+          lines.push("#{indentation}# #{line.strip} # pb removed\n")
+        else
+          lines.push(line)
+        end
+      end
+      return lines.join
+    end
+
+    def self.prepare_for_expo_unimodules(podfile_content)
+      lines = []
+      podfile_content.each_line do |line|
+        if line.include?("use_unimodules!")
+          matches = line.match(/(\s*)/)
+          unless matches&.size == 2
+            return podfile_content
+          end
+    
+          indentation = matches[1]
+          lines.push("#{indentation}use_unimodules!({ modules_paths: ['../../node_modules']}) # pb added\n")
           lines.push("#{indentation}# #{line.strip} # pb removed\n")
         else
           lines.push(line)
@@ -690,6 +720,11 @@ module PodBuilder
       end
       podfile_content = content
       content = prepare_for_react_native_native_modules_file(podfile_content)
+      if content == podfile_content
+        return original_podfile_content
+      end
+      podfile_content = content
+      content = prepare_for_expo_unimodules(podfile_content)
       if content == podfile_content
         return original_podfile_content
       end
